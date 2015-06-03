@@ -16,6 +16,6 @@ install:
   - msys64\usr\bin\bash -lc "for i in {1..3}; do pacman --noconfirm -Suy mingw-w64-x86_64-{ragel,freetype,gettext,glib2,icu,gobject-introspection,cairo,winpthreads-git} libtool pkg-config gcc make autoconf automake perl python && break || sleep 15; done"
   - msys64\autorebase.bat
 build_script:
-  - msys64\usr\bin\bash -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; ./autogen.sh --with-uniscribe --with-freetype --with-glib --with-gobject --with-cairo --with-icu; make check"
+  - msys64\usr\bin\bash -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; ./autogen.sh --with-uniscribe --with-freetype --with-glib --with-gobject --with-cairo --with-icu; LIBRARY_PATH=/usr/lib/w32api:$LIBRARY_PATH; make check"
 # disable automatic tests
 test: off
