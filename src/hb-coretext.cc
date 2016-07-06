@@ -110,7 +110,7 @@ release_data (void *info, const void *data, size_t size)
 }
 
 static CGFontRef
-create_cg_font (hb_face_t *face)
+create_cg_font (hb_face_t *face, hb_blob_t **blob)
 {
   CGFontRef cg_font = NULL;
   if (face->destroy == (hb_destroy_func_t) CGFontRelease)
@@ -119,9 +119,9 @@ create_cg_font (hb_face_t *face)
   }
   else
   {
-    hb_blob_t *blob = hb_face_reference_blob (face);
+    *blob = hb_face_reference_blob (face);
     unsigned int blob_length;
-    const char *blob_data = hb_blob_get_data (blob, &blob_length);
+    const char *blob_data = hb_blob_get_data (*blob, &blob_length);
     if (unlikely (!blob_length))
       DEBUG_MSG (CORETEXT, face, "Face has empty blob");
 
@@ -189,6 +189,7 @@ create_ct_font (CGFontRef cg_font, CGFloat font_size)
 struct hb_coretext_shaper_face_data_t {
   CGFontRef cg_font;
   CTFontRef ct_font;
+  hb_blob_t *blob;
 };
 
 hb_coretext_shaper_face_data_t *
@@ -198,7 +199,7 @@ _hb_coretext_shaper_face_data_create (hb_face_t *face)
   if (unlikely (!data))
     return NULL;
 
-  data->cg_font = create_cg_font (face);
+  data->cg_font = create_cg_font (face, &data->blob);
   if (unlikely (!data->cg_font))
   {
     DEBUG_MSG (CORETEXT, face, "CGFont creation failed..");
@@ -230,6 +231,8 @@ _hb_coretext_shaper_face_data_destroy (hb_coretext_shaper_face_data_t *data)
 {
   CFRelease (data->ct_font);
   CFRelease (data->cg_font);
+  if (data->blob)
+    hb_blob_destroy(data->blob);
   free (data);
 }
 
