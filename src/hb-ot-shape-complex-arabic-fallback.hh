@@ -44,6 +44,45 @@ static const hb_tag_t arabic_fallback_features[] =
   HB_TAG('r','l','i','g'),
 };
 
+static hb_codepoint_t
+traditional_arabic_windows31_font_page (hb_codepoint_t u)
+{
+  switch (u)
+  {
+  // Arabic-Indic digits
+  case 0x0660: return 0xF230;
+  case 0x0661: return 0xF231;
+  case 0x0662: return 0xF232;
+  case 0x0663: return 0xF233;
+  case 0x0664: return 0xF234;
+  case 0x0665: return 0xF235;
+  case 0x0666: return 0xF236;
+  case 0x0667: return 0xF237;
+  case 0x0668: return 0xF238;
+  case 0x0669: return 0xF239;
+
+  // Aleph
+  case 0x0627: return 0xF242;
+  case 0xFE8D: return 0xF245;
+  case 0xFE8E: return 0xF242;
+
+  // Beh
+  case 0x0628: return 0xF24C;
+  case 0xFE8F: return 0xF24C;
+  case 0xFE90: return 0xF24B;
+  case 0xFE91: return 0xF249;
+  case 0xFE92: return 0xF24A;
+
+  // Teh
+  case 0x062A: return 0xF250;
+  case 0xFE95: return 0xF250;
+  case 0xFE96: return 0xF24F;
+  case 0xFE97: return 0xF24D;
+  case 0xFE98: return 0xF24E;
+  default: return 0;
+  }
+}
+
 static OT::SubstLookup *
 arabic_fallback_synthesize_lookup_single (const hb_ot_shape_plan_t *plan HB_UNUSED,
 					  hb_font_t *font,
@@ -60,8 +99,8 @@ arabic_fallback_synthesize_lookup_single (const hb_ot_shape_plan_t *plan HB_UNUS
     hb_codepoint_t u_glyph, s_glyph;
 
     if (!s ||
-	!hb_font_get_glyph (font, u, 0, &u_glyph) ||
-	!hb_font_get_glyph (font, s, 0, &s_glyph) ||
+	!hb_font_get_glyph (font, traditional_arabic_windows31_font_page (u), 0, &u_glyph) ||
+	!hb_font_get_glyph (font, traditional_arabic_windows31_font_page (s), 0, &s_glyph) ||
 	u_glyph == s_glyph ||
 	u_glyph > 0xFFFFu || s_glyph > 0xFFFFu)
       continue;

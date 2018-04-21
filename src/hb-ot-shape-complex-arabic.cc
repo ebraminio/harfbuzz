@@ -702,13 +702,30 @@ reorder_marks_arabic (const hb_ot_shape_plan_t *plan,
   }
 }
 
+
+static void
+preprocess_text_arabic (const hb_ot_shape_plan_t *plan,
+		      hb_buffer_t              *buffer,
+		      hb_font_t                *font)
+{
+  buffer->clear_output ();
+  unsigned int count = buffer->len;
+  for (buffer->idx = 0; buffer->idx < count && !buffer->in_error;)
+  {
+    hb_codepoint_t u = buffer->cur().codepoint;
+    buffer->cur().codepoint = traditional_arabic_windows31_font_page (u);
+    buffer->next_glyph ();
+  }
+  buffer->swap_buffers ();
+}
+
 const hb_ot_complex_shaper_t _hb_ot_complex_shaper_arabic =
 {
   collect_features_arabic,
   nullptr, /* override_features */
   data_create_arabic,
   data_destroy_arabic,
-  nullptr, /* preprocess_text */
+  preprocess_text_arabic,
   postprocess_glyphs_arabic,
   HB_OT_SHAPE_NORMALIZATION_MODE_DEFAULT,
   nullptr, /* decompose */
