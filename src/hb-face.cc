@@ -131,7 +131,6 @@ hb_face_create_for_tables (hb_reference_table_func_t  reference_table_func,
   return face;
 }
 
-
 typedef struct hb_face_for_data_closure_t {
   hb_blob_t *blob;
   unsigned int  index;
@@ -720,4 +719,27 @@ hb_face_builder_add_table (hb_face_t *face, hb_tag_t tag, hb_blob_t *blob)
   entry->blob = hb_blob_reference (blob);
 
   return true;
+}
+
+/**
+ * hb_face_set_woff_decompress_callback:
+ *
+ * Since: REPLACEME
+ **/
+void
+hb_face_set_woff_decompress_callback (hb_face_t *face,
+				      hb_face_woff_decompress_func_t *decompress_func)
+{
+  face->woff_decompress_func = decompress_func;
+}
+
+/**
+ * hb_face_get_woff_decompress_callback:
+ *
+ * Since: REPLACEME
+ **/
+hb_face_woff_decompress_func_t *
+hb_face_get_woff_decompress_callback (hb_face_t *face)
+{
+  return face->woff_decompress_func;
 }

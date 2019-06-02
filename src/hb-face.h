@@ -60,6 +60,29 @@ hb_face_create_for_tables (hb_reference_table_func_t  reference_table_func,
 			   void                      *user_data,
 			   hb_destroy_func_t          destroy);
 
+struct hb_face_woff_decompress_extra_t {
+  uint32_t reserved1;
+  uint32_t reserved2;
+  uint32_t reserved3;
+  uint32_t reserved4;
+} face_decompress_extra_t;
+
+typedef hb_blob_t * (*hb_face_woff_decompress_func_t) (hb_blob_t *compressed,
+						       hb_face_woff_decompress_extra_t args);
+
+HB_EXTERN void
+hb_face_set_woff_decompress_callback (hb_face_t *face,
+				      hb_face_woff_decompress_func_t *decompress_func)
+{
+  face->woff_decompress_func = decompress_func;
+}
+
+HB_EXTERN hb_face_woff_decompress_func_t *
+hb_face_get_woff_decompress_callback (hb_face_t *face)
+{
+  return face->woff_decompress_func;
+}
+
 HB_EXTERN hb_face_t *
 hb_face_get_empty (void);
 

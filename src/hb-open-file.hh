@@ -434,6 +434,90 @@ struct ResourceForkHeader
   DEFINE_SIZE_STATIC (16);
 };
 
+struct WOFFTableDirectoryEntry
+{
+  bool sanitize (hb_sanitize_context_t *c) const
+  {
+    TRACE_SANITIZE (this);
+    return_trace (c->check_struct (this));
+  }
+
+  public:
+  Tag		tag;		/* table ID                  */
+  HBUINT32	offset;		/* table file offset         */
+  HBUINT32	compLength;	/* compressed table length   */
+  HBUINT32	origLength;	/* uncompressed table length */
+  HBUINT32	checkSum;	/* uncompressed checksum     */
+
+  HBUINT32	origOffset;	/* uncompressed table file offset */
+				/* (not in the WOFF file)         */
+  public:
+  DEFINE_SIZE_STATIC (24);
+};
+
+struct WOFFHeader
+{
+  const OpenTypeFontFace& get_face () const
+  { return Null (OpenTypeFontFace); }
+
+  bool sanitize (hb_sanitize_context_t *c) const
+  {
+    TRACE_SANITIZE (this);
+    return_trace (c->check_struct (this));
+  }
+
+  public:
+  Tag		signature;	/* 0x774F4646 'wOFF' or 0x774F4632 'wOF2' */
+  Tag		flavor;		/* The "sfnt version" of the input font. */
+  HBUINT32	length;		/* Total size of the WOFF file. */
+  HBUINT16	numTables;	/* Number of entries in directory of font tables. */
+  HBUINT16	reserved;	/* Reserved; set to zero. */
+  HBUINT32	totalSfntSize;	/* Total size needed for the uncompressed font data,
+				   including the sfnt header, directory, and font
+				   tables (including padding). */
+  FixedVersion<>version;	/* Version of the WOFF file. */
+  HBUINT32	metaOffset;	/* Offset to metadata block, from beginning of WOFF file. */
+  HBUINT32	metaLength;	/* Length of compressed metadata block. */
+  HBUINT32	metaOrigLength;	/* Uncompressed size of metadata block. */
+  HBUINT32	privOffset;	/* Offset to private data block, from beginning of WOFF file. */
+  HBUINT32	privLength;	/* Length of private data block. */
+  public:
+  DEFINE_SIZE_STATIC (44);
+};
+
+struct WOFF2Header
+{
+  const OpenTypeFontFace& get_face () const
+  { return Null (OpenTypeFontFace); }
+
+  bool sanitize (hb_sanitize_context_t *c) const
+  {
+    TRACE_SANITIZE (this);
+    return_trace (c->check_struct (this));
+  }
+
+  public:
+  Tag		signature;	/* 0x774F4646 'wOFF' or 0x774F4632 'wOF2' */
+  Tag		flavor;		/* The "sfnt version" of the input font. */
+  HBUINT32	length;		/* Total size of the WOFF file. */
+  HBUINT16	numTables;	/* Number of entries in directory of font tables. */
+  HBUINT16	reserved;	/* Reserved; set to zero. */
+  HBUINT32	totalSfntSize;	/* Total size needed for the uncompressed font data,
+				   including the sfnt header, directory, and font
+				   tables (including padding). */
+  HBUINT32	totalCompressedSize;
+				/* Total length of the compressed data block. */
+				/* The only difference with WOFFHeader... */
+  FixedVersion<>version;	/* Version of the WOFF file. */
+  HBUINT32	metaOffset;	/* Offset to metadata block, from beginning of WOFF file. */
+  HBUINT32	metaLength;	/* Length of compressed metadata block. */
+  HBUINT32	metaOrigLength;	/* Uncompressed size of metadata block. */
+  HBUINT32	privOffset;	/* Offset to private data block, from beginning of WOFF file. */
+  HBUINT32	privLength;	/* Length of private data block. */
+  public:
+  DEFINE_SIZE_STATIC (44);
+};
+
 /*
  * OpenType Font File
  */
@@ -446,7 +530,9 @@ struct OpenTypeFontFile
     TTCTag		= HB_TAG ('t','t','c','f'), /* TrueType Collection */
     DFontTag		= HB_TAG ( 0 , 0 , 1 , 0 ), /* DFont Mac Resource Fork */
     TrueTag		= HB_TAG ('t','r','u','e'), /* Obsolete Apple TrueType */
-    Typ1Tag		= HB_TAG ('t','y','p','1')  /* Obsolete Apple Type1 font in SFNT container */
+    Typ1Tag		= HB_TAG ('t','y','p','1'), /* Obsolete Apple Type1 font in SFNT container */
+    WoffTag		= HB_TAG ('w','O','F','F'), /* Web Open Font Format (gzip compressed) */
+    Woff2Tag		= HB_TAG ('w','O','F','2')  /* Web Open Font Format 2 (brotli compressed) */
   };
 
   hb_tag_t get_tag () const { return u.tag; }
@@ -457,7 +543,9 @@ struct OpenTypeFontFile
     case CFFTag:	/* All the non-collection tags */
     case TrueTag:
     case Typ1Tag:
-    case TrueTypeTag:	return 1;
+    case TrueTypeTag:
+    case WoffTag:
+    case Woff2Tag:
     case TTCTag:	return u.ttcHeader.get_face_count ();
     case DFontTag:	return u.rfHeader.get_face_count ();
     default:		return 0;
@@ -477,7 +565,9 @@ struct OpenTypeFontFile
     case TrueTypeTag:	return u.fontFace;
     case TTCTag:	return u.ttcHeader.get_face (i);
     case DFontTag:	return u.rfHeader.get_face (i, base_offset);
-    default:		return Null(OpenTypeFontFace);
+    case WoffTag:	return u.woffHeader.get_face ();
+    case Woff2Tag:	return u.woff2Header.get_face ();
+    default:		return Null (OpenTypeFontFace);
     }
   }
 
@@ -503,6 +593,8 @@ struct OpenTypeFontFile
     case TrueTypeTag:	return_trace (u.fontFace.sanitize (c));
     case TTCTag:	return_trace (u.ttcHeader.sanitize (c));
     case DFontTag:	return_trace (u.rfHeader.sanitize (c));
+    case WoffTag:	return_trace (u.woff2Header.sanitize (c));
+    case Woff2Tag:	return_trace (u.woffHeader.sanitize (c));
     default:		return_trace (true);
     }
   }
@@ -513,11 +605,12 @@ struct OpenTypeFontFile
   OpenTypeFontFace	fontFace;
   TTCHeader		ttcHeader;
   ResourceForkHeader	rfHeader;
+  WOFFHeader		woffHeader;
+  WOFF2Header		woff2Header;
   } u;
   public:
   DEFINE_SIZE_UNION (4, tag);
 };
-
 
 } /* namespace OT */
 

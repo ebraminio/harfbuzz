@@ -56,6 +56,8 @@ struct hb_face_t
   mutable hb_atomic_int_t upem;		/* Units-per-EM. */
   mutable hb_atomic_int_t num_glyphs;	/* Number of glyphs. */
 
+  mutable hb_face_woff_decompress_func_t *decompress_func;
+
   hb_shaper_object_dataset_t<hb_face_t> data;/* Various shaper data. */
   hb_ot_face_t table;			/* All the face's tables. */
 
@@ -105,5 +107,7 @@ struct hb_face_t
 };
 DECLARE_NULL_INSTANCE (hb_face_t);
 
+HB_INTERNAL hb_face_woff_decompress_func_t *
+hb_face_get_woff_decompress_callback ();
 
 #endif /* HB_FACE_HH */
