@@ -75,6 +75,29 @@ struct top_dict_values_t : dict_values_t<OPSTR>
   unsigned int  FDArrayOffset;
 };
 
+// Adopted from https://opensource.apple.com/source/tcl/tcl-10/tcl/compat/strtod.c
+static const double powers_of_10[] = { /* 10^2^i */
+  10.,
+  100.,
+  1.0e4,
+  1.0e8,
+  1.0e16,
+  1.0e32,
+  1.0e64,
+  1.0e128,
+  1.0e256
+};
+
+inline double
+_hb_exp10 (unsigned int x)
+{
+  if (x > 511) x = 511;
+  double result = 1.0;
+  for (const double *d = powers_of_10; x != 0; x >>= 1, ++d)
+    if (x & 1) result *= *d;
+  return result;
+}
+
 struct dict_opset_t : opset_t<number_t>
 {
   static void process_op (op_code_t op, interp_env_t<number_t>& env)
@@ -137,7 +160,7 @@ struct dict_opset_t : opset_t<number_t>
 	  value = (double) (neg ? -int_part : int_part);
 	  if (frac_count > 0)
 	  {
-	    double frac = (frac_part / pow (10.0, (double) frac_count));
+	    double frac = frac_part / _hb_exp10 (frac_count);
 	    if (neg) frac = -frac;
 	    value += frac;
 	  }
@@ -153,9 +176,9 @@ struct dict_opset_t : opset_t<number_t>
 	  if (exp_part != 0)
 	  {
 	    if (exp_neg)
-	      value /= pow (10.0, (double) exp_part);
+	      value /= _hb_exp10 (exp_part);
 	    else
-	      value *= pow (10.0, (double) exp_part);
+	      value *= _hb_exp10 (exp_part);
 	  }
 	  return value;
 
@@ -200,7 +223,7 @@ struct dict_opset_t : opset_t<number_t>
 	    case FRAC_PART:
 	      if (likely (frac_part <= MAX_FRACT / 10))
 	      {
-		frac_part = (frac_part * 10) + (unsigned)d;
+		frac_part = (frac_part * 10) + (unsigned) d;
 		frac_count++;
 	      }
 	      break;
