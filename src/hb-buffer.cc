@@ -758,6 +758,55 @@ hb_buffer_reference (hb_buffer_t *buffer)
 }
 
 /**
+ * hb_buffer_clone: (skip)
+ * @destination: an #hb_buffer_t.
+ * @source: an #hb_buffer_t.
+ *
+ * Increases the reference count on @buffer by one. This prevents @buffer from
+ * being destroyed until a matching call to hb_buffer_destroy() is made.
+ *
+ * Return value:
+ * The referenced #hb_buffer_t.
+ *
+ * Since: REPLACEME
+ **/
+void
+hb_buffer_copy (hb_buffer_t *destination, hb_buffer_t *source)
+{
+  if (unlikely (hb_object_is_immutable (destination)))
+    return;
+
+  destination->unicode = source->unicode;
+  destination->flags = source->flags;
+  destination->cluster_level = source->cluster_level;
+  // replacement, invisible, scratch_flags, max_len, max_ops?
+
+  destination->content_type = source->content_type;
+  destination->props = source->props;
+  // successful, have_output, have_positions, idx, len, out_len, allocated
+}
+
+/**
+ * hb_buffer_reference: (skip)
+ * @buffer: an #hb_buffer_t.
+ *
+ * Increases the reference count on @buffer by one. This prevents @buffer from
+ * being destroyed until a matching call to hb_buffer_destroy() is made.
+ *
+ * Return value: (transfer full):
+ * The referenced #hb_buffer_t.
+ *
+ * Since: REPLACEME
+ **/
+HB_EXTERN hb_buffer_t *
+hb_buffer_clone (hb_buffer_t *buffer)
+{
+  hb_buffer_t *result = hb_buffer_create ();
+  hb_buffer_copy (result, buffer);
+  return result;
+}
+
+/**
  * hb_buffer_destroy: (skip)
  * @buffer: an #hb_buffer_t.
  *

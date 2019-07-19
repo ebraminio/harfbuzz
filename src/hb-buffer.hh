@@ -177,10 +177,10 @@ struct hb_buffer_t
 #endif
   }
 
-  hb_glyph_info_t &cur (unsigned int i = 0) { return info[idx + i]; }
+  hb_glyph_info_t &cur (unsigned int i = 0)      { return info[idx + i]; }
   hb_glyph_info_t cur (unsigned int i = 0) const { return info[idx + i]; }
 
-  hb_glyph_position_t &cur_pos (unsigned int i = 0) { return pos[idx + i]; }
+  hb_glyph_position_t &cur_pos (unsigned int i = 0)      { return pos[idx + i]; }
   hb_glyph_position_t cur_pos (unsigned int i = 0) const { return pos[idx + i]; }
 
   hb_glyph_info_t &prev ()      { return out_info[out_len ? out_len - 1 : 0]; }

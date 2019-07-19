@@ -185,6 +185,12 @@ HB_EXTERN hb_buffer_t *
 hb_buffer_reference (hb_buffer_t *buffer);
 
 HB_EXTERN void
+hb_buffer_copy (hb_buffer_t *destination, hb_buffer_t *source);
+
+HB_EXTERN hb_buffer_t *
+hb_buffer_clone (hb_buffer_t *buffer);
+
+HB_EXTERN void
 hb_buffer_destroy (hb_buffer_t *buffer);
 
 HB_EXTERN hb_bool_t
