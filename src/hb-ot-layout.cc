@@ -1941,6 +1941,19 @@ hb_ot_layout_substitute_lookup (OT::hb_ot_apply_context_t *c,
 }
 
 #ifndef HB_NO_BASE
+/**
+ * hb_ot_layout_get_baseline:
+ * @font: a font
+ * @baseline: a baseline tag
+ * @direction: text direction.
+ * @script_tag:  script tag.
+ * @language_tag: language tag.
+ * @coord: (out): baseline value, INT_MAX when simulation also failed.
+ *
+ * Fetches a baseline value from the face, simulate if is possible.
+ *
+ * Return value: true only if the baseline is found inside the font.
+ **/
 hb_bool_t
 hb_ot_layout_get_baseline (hb_font_t               *font,
 			   hb_ot_layout_baseline_t  baseline_tag,
@@ -1949,7 +1962,95 @@ hb_ot_layout_get_baseline (hb_font_t               *font,
 			   hb_tag_t                 language_tag,
 			   hb_position_t           *coord        /* OUT.  May be NULL. */)
 {
-  return font->face->table.BASE->get_baseline (font, baseline_tag, direction, script_tag, language_tag, coord);
+#define INVALID INT_MAX
+  *coord = INVALID;
+  bool result = font->face->table.BASE->get_baseline (font, baseline_tag, direction, script_tag, language_tag, coord);
+
+#define SCALE(value) (value != INVALID ? (HB_DIRECTION_IS_HORIZONTAL (direction) \
+					  ? font->em_scale_y (value) \
+					  : font->em_scale_x (value)) : value)
+  if (result && coord) *coord = SCALE (*coord);
+
+  constexpr hb_ot_layout_baseline_t ideo_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_EMBOX_BOTTOM_OR_LEFT_EDGE;
+  constexpr hb_ot_layout_baseline_t idtp_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_EMBOX_TOP_OR_RIGHT_EDGE;
+  constexpr hb_ot_layout_baseline_t icfb_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_CHARACTER_FACE_BOTTOM_OR_LEFT_EDGE;
+  constexpr hb_ot_layout_baseline_t icft_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_CHARACTER_FACE_TOP_OR_RIGHT_EDGE;
+
+  if (!coord || result ||
+      (baseline_tag != ideo_tag && baseline_tag != idtp_tag &&
+       baseline_tag != icfb_tag && baseline_tag != icft_tag)) /* tags we are able to simulate */
+    return result;
+
+  /* Simulate */
+  unsigned int upem = font->face->get_upem ();
+  bool is_horizontal = HB_DIRECTION_IS_HORIZONTAL (direction);
+  hb_position_t ideoEmboxBottom = INVALID, ideoEmboxLeft = INVALID, ideoEmboxTop = INVALID, ideoEmboxRight = INVALID;
+  hb_position_t icfBottom = INVALID, icfLeft = INVALID, icfTop = INVALID, icfRight = INVALID;
+  struct { hb_position_t ideo = INVALID, idtp = INVALID, icfb = INVALID, icft = INVALID; } HorizAxis, VertAxis;
+  hb_position_t margin = INVALID;
+#define GET_BASE(axis, member) font->face->table.BASE->get_baseline (font, member##_tag, \
+				&axis == &HorizAxis ? HB_DIRECTION_LTR : HB_DIRECTION_TTB, \
+				script_tag, language_tag, &axis.member)
+
+  /* https://docs.microsoft.com/en-us/typography/opentype/spec/baselinetags#ideographic-em-box */
+  /* Or http://web.archive.org/web/20170714012736/https://www.microsoft.com/typography/otspec/baselinetags.htm
+     for proper indention*/
+  ideoEmboxLeft = 0;
+  if (GET_BASE (HorizAxis, ideo))
+  {
+    ideoEmboxBottom = HorizAxis.ideo;
+    if (GET_BASE (HorizAxis, idtp))
+      ideoEmboxTop = HorizAxis.idtp;
+    else
+      ideoEmboxTop = HorizAxis.ideo + upem;
+
+    if (GET_BASE (VertAxis, idtp))
+      ideoEmboxRight = VertAxis.idtp;
+    else
+      ideoEmboxRight = upem;
+
+    if (GET_BASE (VertAxis, ideo) && VertAxis.ideo)
+    { /* Warning: Bad VertAxis.ideo value */ }
+  }
+  else /* If this is a CJK font: */ /* But we haven't implemented this check */
+  {
+    ideoEmboxBottom = font->face->table.OS2->sTypoDescender;
+    ideoEmboxTop = font->face->table.OS2->sTypoAscender;
+    ideoEmboxRight = upem;
+  }
+  /* Else: ideoEmbox cannot be determined for this font */
+
+  if (baseline_tag == ideo_tag) { *coord = SCALE (is_horizontal ? ideoEmboxBottom : ideoEmboxLeft); return result; }
+  if (baseline_tag == idtp_tag) { *coord = SCALE (is_horizontal ? ideoEmboxTop : ideoEmboxRight); return result; }
+
+  /* https://docs.microsoft.com/en-us/typography/opentype/spec/baselinetags#ideographic-em-box */
+  if (ideoEmboxBottom != INVALID && GET_BASE (HorizAxis, icfb))
+  {
+    icfBottom = HorizAxis.icfb;
+    margin = icfBottom - ideoEmboxBottom;
+
+    if (GET_BASE (HorizAxis, icft))
+      icfTop = HorizAxis.icft;
+    else
+      icfTop = ideoEmboxTop - margin;
+
+    if (GET_BASE (VertAxis, icfb))
+      icfLeft = VertAxis.icfb;
+    else
+      icfLeft = margin;
+
+    if (GET_BASE (VertAxis, icft))
+      icfRight = VertAxis.icft;
+    else
+      icfRight = ideoEmboxRight - icfLeft;
+  }
+  /* Else: ICF cannot be determined for this font */
+
+  if (baseline_tag == icfb_tag) { *coord = SCALE (is_horizontal ? icfBottom : icfLeft); return result; }
+  else /*icft*/			{ *coord = SCALE (is_horizontal ? icfTop : icfRight); return result; }
+#undef SCALE
+#undef INVALID
+#undef GET_BASE
 }
 #endif
 #endif

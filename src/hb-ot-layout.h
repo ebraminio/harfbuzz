@@ -425,22 +425,6 @@ typedef enum {
   _HB_OT_LAYOUT_BASELINE_MAX_VALUE = HB_TAG_MAX_SIGNED /*< skip >*/
 } hb_ot_layout_baseline_t;
 
-
-/**
- * hb_ot_layout_get_baseline:
- * @font: The #hb_font_t to work upon
- * @baseline: The #hb_ot_layout_baseline_t to query
- * @direction: The #hb_direction_t text direction to use (horizontal or vertical)
- * @script_tag:  #hb_tag_t of the script to use
- * @language_tag: #hb_tag_t of the language to use
- * @coord: (out): The position of the requested baseline
- *
- * Fetches the coordinates of the specified baseline in the face, underneath
- * the specified script and language and in the specified text direction.
- *
- * Return value: true if the baseline is found for the settings queried, false otherwise
- *
- **/
 HB_EXTERN hb_bool_t
 hb_ot_layout_get_baseline (hb_font_t               *font,
 			   hb_ot_layout_baseline_t  baseline_tag,
