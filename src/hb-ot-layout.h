@@ -402,6 +402,54 @@ hb_ot_layout_feature_get_characters (hb_face_t      *face,
 				     unsigned int   *char_count    /* IN/OUT.  May be NULL */,
 				     hb_codepoint_t *characters    /* OUT.     May be NULL */);
 
+/*
+ * BASE
+ */
+
+/**
+ * hb_ot_layout_baseline_t:
+ *
+ * https://docs.microsoft.com/en-us/typography/opentype/spec/baselinetags
+ *
+ * Since: REPLACEME
+ */
+typedef enum {
+  HB_OT_LAYOUT_BASELINE_TIBETAN_HANGING					= HB_TAG ('h','a','n','g'),
+  HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_CHARACTER_FACE_BOTTOM_OR_LEFT_EDGE	= HB_TAG ('i','c','f','b'),
+  HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_CHARACTER_FACE_TOP_OR_RIGHT_EDGE	= HB_TAG ('i','c','f','t'),
+  HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_EMBOX_BOTTOM_OR_LEFT_EDGE		= HB_TAG ('i','d','e','o'),
+  HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_EMBOX_TOP_OR_RIGHT_EDGE		= HB_TAG ('i','d','t','p'),
+  HB_OT_LAYOUT_BASELINE_MATHEMATICAL_CHARACTERS_CENTER			= HB_TAG ('m','a','t','h'),
+  HB_OT_LAYOUT_BASELINE_ROMAN						= HB_TAG ('r','o','m','n'),
+
+  _HB_OT_LAYOUT_BASELINE_MAX_VALUE = HB_TAG_MAX_SIGNED /*< skip >*/
+} hb_ot_layout_baseline_t;
+
+
+/**
+ * hb_ot_layout_get_baseline:
+ * @font: The #hb_font_t to work upon
+ * @baseline: The #hb_ot_layout_baseline_t to query
+ * @direction: The #hb_direction_t text direction to use (horizontal or vertical)
+ * @script_tag:  #hb_tag_t of the script to use
+ * @language_tag: #hb_tag_t of the language to use
+ * @coord: (out): The position of the requested baseline
+ *
+ * Fetches the coordinates of the specified baseline in the face, underneath
+ * the specified script and language and in the specified text direction.
+ *
+ * Return value: true if the baseline is found for the settings queried, false otherwise
+ *
+ **/
+HB_EXTERN hb_bool_t
+hb_ot_layout_get_baseline (hb_font_t               *font,
+			   hb_ot_layout_baseline_t  baseline_tag,
+			   hb_direction_t           direction,
+			   hb_tag_t                 script_tag,
+			   hb_tag_t                 language_tag,
+			   hb_position_t           *coord        /* OUT.  May be NULL. */);
+
+
 HB_END_DECLS
 
 #endif /* HB_OT_LAYOUT_H */

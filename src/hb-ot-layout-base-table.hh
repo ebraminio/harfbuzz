@@ -32,9 +32,6 @@
 #include "hb-open-type.hh"
 #include "hb-ot-layout-common.hh"
 
-/* To be removed */
-typedef hb_tag_t hb_ot_layout_baseline_t;
-
 namespace OT {
 
 /*
