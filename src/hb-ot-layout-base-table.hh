@@ -373,10 +373,10 @@ struct BaseScriptList
 
 struct Axis
 {
-  bool get_baseline (hb_ot_layout_baseline_t   baseline,
-		     hb_tag_t                  script_tag,
-		     hb_tag_t                  language_tag,
-		     const BaseCoord         **coord) const
+  bool get_baseline (hb_ot_layout_baseline_tag_t   baseline,
+		     hb_tag_t                      script_tag,
+		     hb_tag_t                      language_tag,
+		     const BaseCoord             **coord) const
   {
     const BaseScript &base_script = (this+baseScriptList).get_base_script (script_tag);
     if (!base_script.has_data ()) return false;
@@ -439,12 +439,12 @@ struct BASE
   const VariationStore &get_var_store () const
   { return version.to_int () < 0x00010001u ? Null (VariationStore) : this+varStore; }
 
-  bool get_baseline (hb_font_t               *font,
-		     hb_ot_layout_baseline_t  baseline,
-		     hb_direction_t           direction,
-		     hb_tag_t                 script_tag,
-		     hb_tag_t                 language_tag,
-		     hb_position_t           *base) const
+  bool get_baseline (hb_font_t                   *font,
+		     hb_ot_layout_baseline_tag_t  baseline,
+		     hb_direction_t               direction,
+		     hb_tag_t                     script_tag,
+		     hb_tag_t                     language_tag,
+		     hb_position_t               *base) const
   {
     const BaseCoord *base_coord = nullptr;
     if (unlikely (!get_axis (direction).get_baseline (baseline, script_tag, language_tag, &base_coord) ||

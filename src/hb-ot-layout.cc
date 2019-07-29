@@ -1955,12 +1955,12 @@ hb_ot_layout_substitute_lookup (OT::hb_ot_apply_context_t *c,
  * Return value: true only if the baseline is found inside the font.
  **/
 hb_bool_t
-hb_ot_layout_get_baseline (hb_font_t               *font,
-			   hb_ot_layout_baseline_t  baseline_tag,
-			   hb_direction_t           direction,
-			   hb_tag_t                 script_tag,
-			   hb_tag_t                 language_tag,
-			   hb_position_t           *coord        /* OUT.  May be NULL. */)
+hb_ot_layout_get_baseline (hb_font_t                   *font,
+			   hb_ot_layout_baseline_tag_t  baseline_tag,
+			   hb_direction_t               direction,
+			   hb_tag_t                     script_tag,
+			   hb_tag_t                     language_tag,
+			   hb_position_t               *coord        /* OUT.  May be NULL. */)
 {
 #define INVALID INT_MAX
   *coord = INVALID;
@@ -1971,10 +1971,10 @@ hb_ot_layout_get_baseline (hb_font_t               *font,
 					  : font->em_scale_x (value)) : value)
   if (result && coord) *coord = SCALE (*coord);
 
-  constexpr hb_ot_layout_baseline_t ideo_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_EMBOX_BOTTOM_OR_LEFT_EDGE;
-  constexpr hb_ot_layout_baseline_t idtp_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_EMBOX_TOP_OR_RIGHT_EDGE;
-  constexpr hb_ot_layout_baseline_t icfb_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_CHARACTER_FACE_BOTTOM_OR_LEFT_EDGE;
-  constexpr hb_ot_layout_baseline_t icft_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_CHARACTER_FACE_TOP_OR_RIGHT_EDGE;
+  constexpr hb_ot_layout_baseline_tag_t ideo_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_EMBOX_BOTTOM_OR_LEFT_EDGE;
+  constexpr hb_ot_layout_baseline_tag_t idtp_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_EMBOX_TOP_OR_RIGHT_EDGE;
+  constexpr hb_ot_layout_baseline_tag_t icfb_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_CHARACTER_FACE_BOTTOM_OR_LEFT_EDGE;
+  constexpr hb_ot_layout_baseline_tag_t icft_tag = HB_OT_LAYOUT_BASELINE_IDEOGRAPHIC_CHARACTER_FACE_TOP_OR_RIGHT_EDGE;
 
   if (!coord || result ||
       (baseline_tag != ideo_tag && baseline_tag != idtp_tag &&
