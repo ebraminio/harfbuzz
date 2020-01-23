@@ -32,20 +32,85 @@ typedef struct user_data_t {
   unsigned consumed;
 } user_data_t;
 
+/* Our modified iota, why not using libc's? it is going to be used
+   in harfbuzzjs where libc isn't available */
+static void _hb_reverse (char *buf, unsigned int len)
+{
+  unsigned start = 0, end = len - 1;
+  while (start < end)
+  {
+    char c = buf[end];
+    buf[end] = buf[start];
+    buf[start] = c;
+    start++; end--;
+  }
+}
+static unsigned _hb_itoa (int32_t num, char *buf)
+{
+  unsigned int i = 0;
+  hb_bool_t is_negative = num < 0;
+  if (is_negative) num = -num;
+  do
+  {
+    buf[i++] = '0' + num % 10;
+    num /= 10;
+  } while (num);
+  if (is_negative) buf[i++] = '-';
+  _hb_reverse (buf, i);
+  buf[i] = '\0';
+  return i;
+}
+
+#define ITOA_BUF_SIZE 12 // 10 digits in int32, 1 for negative sign, 1 for \0
+
+static void
+test_itoa (void)
+{
+  char s[] = "12345";
+  _hb_reverse (s, 5);
+  g_assert_cmpmem (s, 5, "54321", 5);
+
+  {
+    unsigned num = 12345;
+    char buf[ITOA_BUF_SIZE];
+    unsigned len = _hb_itoa (num, buf);
+    g_assert_cmpmem (buf, len, "12345", 5);
+  }
+
+  {
+    unsigned num = 3152;
+    char buf[ITOA_BUF_SIZE];
+    unsigned len = _hb_itoa (num, buf);
+    g_assert_cmpmem (buf, len, "3152", 4);
+  }
+
+  {
+    int num = -6457;
+    char buf[ITOA_BUF_SIZE];
+    unsigned len = _hb_itoa (num, buf);
+    g_assert_cmpmem (buf, len, "-6457", 5);
+  }
+}
+
 static void
 move_to (hb_position_t to_x, hb_position_t to_y, user_data_t *user_data)
 {
-  user_data->consumed += snprintf (user_data->str + user_data->consumed,
-				   user_data->size - user_data->consumed,
-				   "M%d,%d", to_x, to_y);
+  /* 4 = command character space + comma + array starts with 0 index + nul character space */
+  if (user_data->consumed + 2 * ITOA_BUF_SIZE + 4 > user_data->size) return;
+  user_data->str[user_data->consumed++] = 'M';
+  user_data->consumed += _hb_itoa (to_x, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ',';
+  user_data->consumed += _hb_itoa (to_y, user_data->str + user_data->consumed);
 }
 
 static void
 line_to (hb_position_t to_x, hb_position_t to_y, user_data_t *user_data)
 {
-  user_data->consumed += snprintf (user_data->str + user_data->consumed,
-				   user_data->size - user_data->consumed,
-				   "L%d,%d", to_x, to_y);
+  if (user_data->consumed + 2 * ITOA_BUF_SIZE + 4 > user_data->size) return;
+  user_data->str[user_data->consumed++] = 'L';
+  user_data->consumed += _hb_itoa (to_x, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ',';
+  user_data->consumed += _hb_itoa (to_y, user_data->str + user_data->consumed);
 }
 
 static void
@@ -53,11 +118,16 @@ conic_to (hb_position_t control_x, hb_position_t control_y,
 	  hb_position_t to_x, hb_position_t to_y,
 	  user_data_t *user_data)
 {
-  user_data->consumed += snprintf (user_data->str + user_data->consumed,
-				   user_data->size - user_data->consumed,
-				   "Q%d,%d %d,%d",
-				   control_x, control_y,
-				   to_x, to_y);
+
+  if (user_data->consumed + 4 * ITOA_BUF_SIZE + 6 > user_data->size) return;
+  user_data->str[user_data->consumed++] = 'Q';
+  user_data->consumed += _hb_itoa (control_x, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ',';
+  user_data->consumed += _hb_itoa (control_y, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ' ';
+  user_data->consumed += _hb_itoa (to_x, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ',';
+  user_data->consumed += _hb_itoa (to_y, user_data->str + user_data->consumed);
 }
 
 static void
@@ -66,20 +136,26 @@ cubic_to (hb_position_t control1_x, hb_position_t control1_y,
 	  hb_position_t to_x, hb_position_t to_y,
 	  user_data_t *user_data)
 {
-  user_data->consumed += snprintf (user_data->str + user_data->consumed,
-				   user_data->size - user_data->consumed,
-				   "C%d,%d %d,%d %d,%d",
-				   control1_x, control1_y,
-				   control2_x, control2_y,
-				   to_x, to_y);
+  if (user_data->consumed + 6 * ITOA_BUF_SIZE + 8 > user_data->size) return;
+  user_data->str[user_data->consumed++] = 'C';
+  user_data->consumed += _hb_itoa (control1_x, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ',';
+  user_data->consumed += _hb_itoa (control1_y, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ' ';
+  user_data->consumed += _hb_itoa (control2_x, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ',';
+  user_data->consumed += _hb_itoa (control2_y, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ' ';
+  user_data->consumed += _hb_itoa (to_x, user_data->str + user_data->consumed);
+  user_data->str[user_data->consumed++] = ',';
+  user_data->consumed += _hb_itoa (to_y, user_data->str + user_data->consumed);
 }
 
 static void
 close_path (user_data_t *user_data)
 {
-  user_data->consumed += snprintf (user_data->str + user_data->consumed,
-				   user_data->size - user_data->consumed,
-				   "Z");
+  if (user_data->consumed + 2 > user_data->size) return;
+  user_data->str[user_data->consumed++] = 'Z';
 }
 
 static hb_ot_glyph_decompose_funcs_t *funcs;
@@ -237,6 +313,7 @@ main (int argc, char **argv)
   hb_ot_glyph_decompose_funcs_set_close_path_func (funcs, (hb_ot_glyph_decompose_close_path_func_t) close_path);
 
   hb_test_init (&argc, &argv);
+  hb_test_add (test_itoa);
   hb_test_add (test_hb_ot_glyph_empty);
   hb_test_add (test_hb_ot_glyph_glyf);
   hb_test_add (test_hb_ot_glyph_cff1);
