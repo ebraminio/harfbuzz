@@ -31,7 +31,7 @@ jobs:
       - run: export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig" && ./autogen.sh --with-freetype --with-glib --with-gobject --with-cairo --with-icu --with-coretext --with-graphite2
       - run: make -j4
       - run: make check || .ci/fail.sh
-      - run: cmake -Bbuild -H. -DHB_HAVE_CORETEXT=1 -DHB_BUILD_TESTS=0 && cmake --build build
+      - run: cmake -Bbuild -H. -DHB_HAVE_CORETEXT=1 && cmake --build build
 
   macos-10.15-aat-fonts:
     macos:
@@ -42,7 +42,7 @@ jobs:
       - run: export PKG_CONFIG_PATH="/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig" && ./autogen.sh --with-freetype --with-glib --with-gobject --with-cairo --with-icu --with-coretext --with-graphite2
       - run: make -j4
       - run: make check || .ci/fail.sh
-      - run: cmake -Bbuild -H. -DHB_HAVE_CORETEXT=1 -DHB_BUILD_TESTS=0 && cmake --build build
+      - run: cmake -Bbuild -H. -DHB_HAVE_CORETEXT=1 && cmake --build build
 
   distcheck:
     docker:
@@ -278,7 +278,7 @@ jobs:
       - image: dockcross/android-arm
     steps:
       - checkout
-      - run: cmake -Bbuild -H. -GNinja -DHB_BUILD_TESTS=OFF
+      - run: cmake -Bbuild -H. -GNinja
       - run: ninja -Cbuild
 
   crosscompile-cmake-notest-browser-asmjs-hb_tiny:
@@ -286,7 +286,7 @@ jobs:
       - image: dockcross/browser-asmjs
     steps:
       - checkout
-      - run: cmake -Bbuild -H. -GNinja -DCMAKE_CXX_FLAGS="-DHB_TINY" -DHB_BUILD_TESTS=OFF
+      - run: cmake -Bbuild -H. -GNinja -DCMAKE_CXX_FLAGS="-DHB_TINY"
       - run: ninja -Cbuild
 
   crosscompile-cmake-notest-linux-arm64:
@@ -294,7 +294,7 @@ jobs:
       - image: dockcross/linux-arm64
     steps:
       - checkout
-      - run: cmake -Bbuild -H. -GNinja -DHB_BUILD_TESTS=OFF
+      - run: cmake -Bbuild -H. -GNinja
       - run: ninja -Cbuild
 
   crosscompile-cmake-notest-linux-mips:
@@ -302,7 +302,7 @@ jobs:
       - image: dockcross/linux-mips
     steps:
       - checkout
-      - run: cmake -Bbuild -H. -GNinja -DHB_BUILD_TESTS=OFF
+      - run: cmake -Bbuild -H. -GNinja
       - run: ninja -Cbuild
 
   #crosscompile-cmake-notest-windows-x64:
