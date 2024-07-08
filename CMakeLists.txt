@@ -147,43 +147,7 @@ set (HB_VERSION_MICRO ${CMAKE_MATCH_4})
 
 ## Define sources and headers of the project
 set (project_sources ${PROJECT_SOURCE_DIR}/src/harfbuzz.cc) # use amalgam source
-set (subset_project_sources
-     ${PROJECT_SOURCE_DIR}/src/hb-number.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-number.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-ot-cff1-table.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-ot-cff2-table.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-ot-post-table-v2subset.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-static.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-cff-common.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-cff-common.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-cff1.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-cff2.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-input.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-input.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-instancer-iup.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-instancer-iup.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-instancer-solver.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-instancer-solver.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-accelerator.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-plan.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-plan.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-plan-member-list.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-subset-repacker.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset.cc
-     ${PROJECT_SOURCE_DIR}/src/hb-subset.hh
-     ${PROJECT_SOURCE_DIR}/src/hb-repacker.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/graph.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/gsubgpos-graph.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/gsubgpos-context.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/gsubgpos-context.cc
-     ${PROJECT_SOURCE_DIR}/src/graph/coverage-graph.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/classdef-graph.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/pairpos-graph.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/markbasepos-graph.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/split-helpers.hh
-     ${PROJECT_SOURCE_DIR}/src/graph/serialize.hh
-     ${PROJECT_SOURCE_DIR}/src/OT/Color/COLR/colrv1-closure.hh
-)
+set (subset_project_sources ${PROJECT_SOURCE_DIR}/src/harfbuzz-subset.cc)
 set (project_extra_sources)
 set (project_headers
      ${PROJECT_SOURCE_DIR}/src/hb-aat-layout.h
@@ -734,72 +698,21 @@ if (HB_BUILD_UTILS)
   add_definitions("-DPACKAGE_VERSION=\"${HB_VERSION}\"")
 
   if (HB_HAVE_CAIRO)
-    add_executable(hb-view
-        ${PROJECT_SOURCE_DIR}/util/ansi-print.hh
-        ${PROJECT_SOURCE_DIR}/util/face-options.hh
-        ${PROJECT_SOURCE_DIR}/util/font-options.hh
-        ${PROJECT_SOURCE_DIR}/util/hb-view.cc
-        ${PROJECT_SOURCE_DIR}/util/helper-cairo-ansi.hh
-        ${PROJECT_SOURCE_DIR}/util/helper-cairo-ft.hh
-        ${PROJECT_SOURCE_DIR}/util/helper-cairo.hh
-        ${PROJECT_SOURCE_DIR}/util/main-font-text.hh
-        ${PROJECT_SOURCE_DIR}/util/options.hh
-        ${PROJECT_SOURCE_DIR}/util/output-options.hh
-        ${PROJECT_SOURCE_DIR}/util/shape-consumer.hh
-        ${PROJECT_SOURCE_DIR}/util/shape-options.hh
-        ${PROJECT_SOURCE_DIR}/util/text-options.hh
-        ${PROJECT_SOURCE_DIR}/util/view-cairo.hh
-        ${PROJECT_SOURCE_DIR}/util/view-options.hh
-    )
+    add_executable(hb-view ${PROJECT_SOURCE_DIR}/util/hb-view.cc)
     target_link_libraries(hb-view harfbuzz-cairo harfbuzz ${CAIRO_LIBRARIESNAMES})
   endif()
 
-  add_executable(hb-shape
-        ${PROJECT_SOURCE_DIR}/util/batch.hh
-        ${PROJECT_SOURCE_DIR}/util/face-options.hh
-        ${PROJECT_SOURCE_DIR}/util/font-options.hh
-        ${PROJECT_SOURCE_DIR}/util/hb-shape.cc
-        ${PROJECT_SOURCE_DIR}/util/main-font-text.hh
-        ${PROJECT_SOURCE_DIR}/util/options.hh
-        ${PROJECT_SOURCE_DIR}/util/output-options.hh
-        ${PROJECT_SOURCE_DIR}/util/shape-consumer.hh
-        ${PROJECT_SOURCE_DIR}/util/shape-format.hh
-        ${PROJECT_SOURCE_DIR}/util/shape-options.hh
-        ${PROJECT_SOURCE_DIR}/util/shape-output.hh
-        ${PROJECT_SOURCE_DIR}/util/text-options.hh
-  )
+  add_executable(hb-shape ${PROJECT_SOURCE_DIR}/util/hb-shape.cc)
   target_link_libraries(hb-shape harfbuzz)
 
-  add_executable(hb-subset
-        ${PROJECT_SOURCE_DIR}/util/batch.hh
-        ${PROJECT_SOURCE_DIR}/util/face-options.hh
-        ${PROJECT_SOURCE_DIR}/util/hb-subset.cc
-        ${PROJECT_SOURCE_DIR}/util/main-font-text.hh
-        ${PROJECT_SOURCE_DIR}/util/options.hh
-        ${PROJECT_SOURCE_DIR}/util/output-options.hh
-        ${PROJECT_SOURCE_DIR}/util/text-options.hh
-        ${PROJECT_SOURCE_DIR}/util/helper-subset.hh
-  )
+  add_executable(hb-subset ${PROJECT_SOURCE_DIR}/util/hb-subset.cc)
   target_link_libraries(hb-subset harfbuzz harfbuzz-subset)
 
-  add_executable(hb-ot-shape-closure
-        ${PROJECT_SOURCE_DIR}/util/face-options.hh
-        ${PROJECT_SOURCE_DIR}/util/font-options.hh
-        ${PROJECT_SOURCE_DIR}/util/hb-ot-shape-closure.cc
-        ${PROJECT_SOURCE_DIR}/util/main-font-text.hh
-        ${PROJECT_SOURCE_DIR}/util/options.hh
-        ${PROJECT_SOURCE_DIR}/util/text-options.hh
-  )
+  add_executable(hb-ot-shape-closure ${PROJECT_SOURCE_DIR}/util/hb-ot-shape-closure.cc)
   target_link_libraries(hb-ot-shape-closure harfbuzz)
 
   if (HB_HAVE_GOBJECT)
-    add_executable(hb-info
-        ${PROJECT_SOURCE_DIR}/util/batch.hh
-        ${PROJECT_SOURCE_DIR}/util/face-options.hh
-        ${PROJECT_SOURCE_DIR}/util/font-options.hh
-        ${PROJECT_SOURCE_DIR}/util/hb-info.cc
-        ${PROJECT_SOURCE_DIR}/util/options.hh
-    )
+    add_executable(hb-info ${PROJECT_SOURCE_DIR}/util/hb-info.cc)
     target_link_libraries(hb-info harfbuzz-gobject harfbuzz)
   endif()
 endif ()
