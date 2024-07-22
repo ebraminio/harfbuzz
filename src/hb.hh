@@ -280,6 +280,14 @@ extern "C" void  hb_free_impl(void *ptr);
 #define __attribute__(x)
 #endif
 
+#ifndef __counted_by
+# if __has_attribute(__counted_by__)
+#  define __counted_by(member)  __attribute__((__counted_by__(member)))
+# else
+#  define __counted_by(member)
+# endif
+#endif
+
 #if defined(__GNUC__) && (__GNUC__ >= 3)
 #define HB_PRINTF_FUNC(format_idx, arg_idx) __attribute__((__format__ (__printf__, format_idx, arg_idx)))
 #else

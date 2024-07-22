@@ -328,7 +328,7 @@ struct hb_array_t : hb_iter_with_fallback_t<hb_array_t<Type>, Type&>
    */
 
   public:
-  Type *arrayZ = nullptr;
+  Type *arrayZ __counted_by(length) = nullptr;
   unsigned int length = 0;
   unsigned int backwards_length = 0;
 };

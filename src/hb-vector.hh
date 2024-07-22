@@ -91,7 +91,7 @@ struct hb_vector_t
   int allocated = 0; /* < 0 means allocation failed. */
   unsigned int length = 0;
   public:
-  Type *arrayZ = nullptr;
+  Type *arrayZ __counted_by(length) = nullptr;
 
   void init ()
   {

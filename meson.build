@@ -43,6 +43,8 @@ if get_option('cpp_std') == 'c++11'
   endif
 endif
 
+add_project_arguments('-D_FORTIFY_SOURCE=3', language : ['c', 'cpp'])
+
 if cpp.get_argument_syntax() == 'msvc'
   # Ignore several spurious warnings for things HarfBuzz does very commonly.
   # If a warning is completely useless and spammy, use '/wdXXXX' to suppress it
