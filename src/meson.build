@@ -1034,6 +1034,21 @@ if get_option('tests').enabled()
     ), suite: ['src'])
   endforeach
 
+  if not cpp_is_microsoft_compiler
+    test_hint_dependencies = [libharfbuzz_dep]
+    if conf.get('HAVE_FREETYPE', 0) == 1
+      test_hint_dependencies += [freetype_dep]
+    endif
+    test('test-hint', executable('test-hint', ['test-hint.cc', 'hb-static.cc'],
+      include_directories: incconfig,
+      cpp_args: cpp_args + ['-UNDEBUG'],
+      dependencies: test_hint_dependencies,
+      install: false,
+    ),
+      args: [meson.project_source_root() / 'test/api/fonts/hint-minimal.ttf'],
+      suite: ['src'])
+  endif
+
   if not cpp_is_microsoft_compiler and not get_option('subset').disabled()
     test('test-cbdt-cache', executable('test-cbdt-cache', ['test-cbdt-cache.cc', 'hb-static.cc'],
       include_directories: incconfig,
