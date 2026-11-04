@@ -51,8 +51,9 @@ Here is a quick map of its components:
 | **libharfbuzz-gpu** | Encodes glyph outlines for GPU rasterization (Slug algorithm). Provides shader sources in GLSL, WGSL, MSL, and HLSL. [Live demo.](https://harfbuzz.github.io/hb-gpu-demo/) |
 
 Notable missing feature: font hinting (including autohinting)
-is not implemented.  For hinted rasterization, use FreeType or
-Skrifa.
+is not implemented.  See [HINTING.md](HINTING.md) for the roadmap
+and the current TrueType bootstrap.  For hinted rasterization,
+use FreeType or Skrifa.
 
 For simplified builds, amalgamated sources are available:
 `harfbuzz.cc` (just libharfbuzz), `harfbuzz-subset.cc` (just
