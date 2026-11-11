@@ -123,6 +123,7 @@ HB_OT_TABLE (AAT, ankr)
 HB_OT_TABLE (AAT, trak)
 HB_OT_TABLE (AAT, ltag)
 HB_OT_TABLE (AAT, feat)
+HB_OT_TABLE (AAT, Zapf)
 // HB_OT_TABLE (AAT, opbd)
 #endif
 

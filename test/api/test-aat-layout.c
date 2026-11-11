@@ -25,7 +25,6 @@
 #include "hb-test.h"
 
 #include <hb.h>
-#include <hb-ot.h>
 #include <hb-aat.h>
 
 /* Unit tests for hb-aat.h */
@@ -101,6 +100,269 @@ test_aat_get_feature_selectors (void)
 									  0, &count, settings,
 									  NULL));
   g_assert_cmpuint (0, ==, count);
+}
+
+static void
+put_be16 (uint8_t *p, unsigned int v)
+{
+  p[0] = (uint8_t) (v >> 8);
+  p[1] = (uint8_t) v;
+}
+
+static void
+put_be32 (uint8_t *p, unsigned int v)
+{
+  p[0] = (uint8_t) (v >> 24);
+  p[1] = (uint8_t) (v >> 16);
+  p[2] = (uint8_t) (v >> 8);
+  p[3] = (uint8_t) v;
+}
+
+static hb_face_t *
+create_zapf_face (void)
+{
+  uint8_t maxp[6];
+  put_be32 (maxp, 0x00005000); /* maxp 0.5: version + numGlyphs only */
+  put_be16 (maxp + 4, 5);
+
+  /* 5 glyphs, five 12-byte GlyphInfo records after the offset array,
+   * extraInfo at 88.  Glyphs 1 and 2 share a GroupInfo; glyphs 3 and 4
+   * share a GroupInfoGroup pointing at a child GroupInfo. */
+  uint8_t zapf[118];
+  memset (zapf, 0, sizeof zapf);
+  put_be32 (zapf, 0x00010000);
+  put_be32 (zapf + 4, 88);
+
+  unsigned int offsets[5] = {28, 40, 52, 64, 76};
+  unsigned int groups[5] = {0xFFFFFFFF, 0, 0, 12, 12};
+  for (unsigned int i = 0; i < 5; i++)
+  {
+    put_be32 (zapf + 8 + 4 * i, offsets[i]);
+    put_be32 (zapf + offsets[i], groups[i]);
+    put_be32 (zapf + offsets[i] + 4, 0xFFFFFFFF);
+    put_be16 (zapf + offsets[i] + 8, 0);
+    put_be16 (zapf + offsets[i] + 10, 0);
+  }
+
+  put_be16 (zapf + 88, 0x8001);  /* GroupInfo, one flag word */
+  put_be16 (zapf + 90, 0x4000);  /* aligned */
+  put_be16 (zapf + 92, 0);       /* nameIndex */
+  put_be16 (zapf + 94, 2);       /* glyphCount */
+  put_be16 (zapf + 96, 1);
+  put_be16 (zapf + 98, 2);
+
+  put_be16 (zapf + 100, 0x4001); /* GroupInfoGroup, one offset */
+  put_be16 (zapf + 102, 0);
+  put_be32 (zapf + 104, 20);     /* child GroupInfo at extra+20 */
+
+  put_be16 (zapf + 108, 0x0001); /* child GroupInfo */
+  put_be16 (zapf + 110, 0);
+  put_be16 (zapf + 112, 2);
+  put_be16 (zapf + 114, 3);
+  put_be16 (zapf + 116, 4);
+
+  hb_blob_t *maxp_blob = hb_blob_create ((const char *) maxp, sizeof maxp,
+					 HB_MEMORY_MODE_DUPLICATE, NULL, NULL);
+  hb_blob_t *zapf_blob = hb_blob_create ((const char *) zapf, sizeof zapf,
+					 HB_MEMORY_MODE_DUPLICATE, NULL, NULL);
+  hb_face_t *face = hb_face_builder_create ();
+  g_assert_true (hb_face_builder_add_table (face, HB_TAG ('m','a','x','p'), maxp_blob));
+  g_assert_true (hb_face_builder_add_table (face, HB_TAG ('Z','a','p','f'), zapf_blob));
+  hb_blob_destroy (maxp_blob);
+  hb_blob_destroy (zapf_blob);
+
+  return face;
+}
+
+static void
+assert_glyph_variants (hb_face_t *face, hb_codepoint_t glyph,
+		       const hb_codepoint_t *expected, unsigned int count)
+{
+  hb_set_t *variants = hb_set_create ();
+  hb_aat_layout_collect_glyph_variants (face, glyph, variants);
+  g_assert_cmpuint (count, ==, hb_set_get_population (variants));
+  for (unsigned int i = 0; i < count; i++)
+    g_assert_true (hb_set_has (variants, expected[i]));
+  hb_set_destroy (variants);
+}
+
+static void
+test_aat_glyph_variants (void)
+{
+  static const hb_codepoint_t one[] = {2};
+  static const hb_codepoint_t two[] = {1};
+  static const hb_codepoint_t three[] = {4};
+  hb_face_t *face = create_zapf_face ();
+
+  assert_glyph_variants (face, 1, one, 1);
+  assert_glyph_variants (face, 2, two, 1);
+  assert_glyph_variants (face, 3, three, 1);
+  assert_glyph_variants (face, 0, NULL, 0);
+
+  hb_face_destroy (face);
+}
+
+static hb_face_t *
+create_zapf_v2_face (hb_bool_t format10)
+{
+  uint8_t maxp[6];
+  put_be32 (maxp, 0x00005000);
+  put_be16 (maxp + 4, 5);
+
+  /* Version 2: 16-bit version, an AAT lookup table (format 0 or 10), and
+   * GlyphInfo with a flags byte.  The group at extra+0 is a GlyphGroup whose
+   * subgroup is aligned (0xC000), followed by a GlyphGroupOffsetArray. */
+  unsigned int lookup_size = format10 ? 28 : 22;
+  unsigned int records_start = 8 + lookup_size;
+  unsigned int extra = records_start + 5 * 12;
+  unsigned int group_info = extra + (format10 ? 12 : 14);
+  unsigned int child = extra + 22;
+  unsigned int length = child + 10;
+
+  uint8_t zapf[128];
+  g_assert_cmpuint (length, <=, sizeof zapf);
+  memset (zapf, 0, sizeof zapf);
+  put_be16 (zapf, 2);
+  put_be16 (zapf + 2, 0);
+  put_be32 (zapf + 4, extra);
+
+  unsigned int records[5];
+  for (unsigned int i = 0; i < 5; i++)
+    records[i] = records_start + 12 * i;
+
+  if (format10)
+  {
+    put_be16 (zapf + 8, 10);  /* lookup format 10 */
+    put_be16 (zapf + 10, 4);  /* valueSize */
+    put_be16 (zapf + 12, 0);  /* firstGlyph */
+    put_be16 (zapf + 14, 5);  /* glyphCount */
+    for (unsigned int i = 0; i < 5; i++)
+      put_be32 (zapf + 16 + 4 * i, records[i]);
+  }
+  else
+  {
+    put_be16 (zapf + 8, 0);   /* lookup format 0 */
+    for (unsigned int i = 0; i < 5; i++)
+      put_be32 (zapf + 10 + 4 * i, records[i]);
+  }
+
+  unsigned int groups[5] = {0xFFFFFFFF, 0, 0, format10 ? 12 : 14, format10 ? 12 : 14};
+  for (unsigned int i = 0; i < 5; i++)
+  {
+    unsigned int record = records[i];
+    put_be32 (zapf + record, groups[i]);
+    put_be32 (zapf + record + 4, 0xFFFFFFFF);
+    put_be16 (zapf + record + 8, i == 1 ? 0x8000 : 0); /* canonical flag */
+    put_be16 (zapf + record + 10, 0);
+  }
+
+  put_be16 (zapf + extra, 0x8001);      /* GlyphGroup, one flag word */
+  put_be16 (zapf + extra + 2, 0xC000);  /* aligned + subdivided */
+  put_be16 (zapf + extra + 4, 0);
+  put_be16 (zapf + extra + 6, 2);
+  put_be16 (zapf + extra + 8, 1);
+  put_be16 (zapf + extra + 10, 2);
+
+  put_be16 (zapf + group_info, 0x4001); /* GlyphGroupOffsetArray */
+  put_be16 (zapf + group_info + 2, 0);
+  put_be32 (zapf + group_info + 4, 22); /* child GlyphGroup at extra+22 */
+
+  put_be16 (zapf + child, 0x0001);
+  put_be16 (zapf + child + 2, 0);
+  put_be16 (zapf + child + 4, 2);
+  put_be16 (zapf + child + 6, 3);
+  put_be16 (zapf + child + 8, 4);
+
+  hb_blob_t *maxp_blob = hb_blob_create ((const char *) maxp, sizeof maxp,
+					 HB_MEMORY_MODE_DUPLICATE, NULL, NULL);
+  hb_blob_t *zapf_blob = hb_blob_create ((const char *) zapf, length,
+					 HB_MEMORY_MODE_DUPLICATE, NULL, NULL);
+  hb_face_t *face = hb_face_builder_create ();
+  g_assert_true (hb_face_builder_add_table (face, HB_TAG ('m','a','x','p'), maxp_blob));
+  g_assert_true (hb_face_builder_add_table (face, HB_TAG ('Z','a','p','f'), zapf_blob));
+  hb_blob_destroy (maxp_blob);
+  hb_blob_destroy (zapf_blob);
+  return face;
+}
+
+static void
+test_aat_glyph_variants_v2 (void)
+{
+  static const hb_codepoint_t one[] = {2};
+  static const hb_codepoint_t three[] = {4};
+
+  for (unsigned int format10 = 0; format10 <= 1; format10++)
+  {
+    hb_face_t *face = create_zapf_v2_face (format10);
+
+    assert_glyph_variants (face, 1, one, 1);
+    assert_glyph_variants (face, 3, three, 1);
+    assert_glyph_variants (face, 0, NULL, 0);
+
+    hb_face_destroy (face);
+  }
+}
+
+static hb_face_t *
+create_zapf_cycle_face (void)
+{
+  uint8_t maxp[6];
+  put_be32 (maxp, 0x00005000);
+  put_be16 (maxp + 4, 5);
+
+  /* Version 1 with a GlyphGroupOffsetArray at extra+0 whose second offset
+   * points back to itself.  Glyph 3 points at a normal group at extra+12. */
+  uint8_t zapf[108];
+  memset (zapf, 0, sizeof zapf);
+  put_be32 (zapf, 0x00010000);
+  put_be32 (zapf + 4, 88);
+
+  unsigned int records[5] = {28, 40, 52, 64, 76};
+  for (unsigned int i = 0; i < 5; i++)
+    put_be32 (zapf + 8 + 4 * i, records[i]);
+
+  unsigned int groups[5] = {0xFFFFFFFF, 0, 0xFFFFFFFF, 12, 0xFFFFFFFF};
+  for (unsigned int i = 0; i < 5; i++)
+  {
+    unsigned int record = records[i];
+    put_be32 (zapf + record, groups[i]);
+    put_be32 (zapf + record + 4, 0xFFFFFFFF);
+    put_be16 (zapf + record + 8, 0);
+    put_be16 (zapf + record + 10, 0);
+  }
+
+  put_be16 (zapf + 88, 0x4002);  /* GlyphGroupOffsetArray, two offsets */
+  put_be16 (zapf + 90, 0);
+  put_be32 (zapf + 92, 0xFFFFFFFF);
+  put_be32 (zapf + 96, 0);       /* self-reference */
+
+  put_be16 (zapf + 100, 0x0001); /* normal GlyphGroup for glyph 3 */
+  put_be16 (zapf + 102, 0);
+  put_be16 (zapf + 104, 1);
+  put_be16 (zapf + 106, 4);
+
+  hb_blob_t *maxp_blob = hb_blob_create ((const char *) maxp, sizeof maxp,
+					 HB_MEMORY_MODE_DUPLICATE, NULL, NULL);
+  hb_blob_t *zapf_blob = hb_blob_create ((const char *) zapf, sizeof zapf,
+					 HB_MEMORY_MODE_DUPLICATE, NULL, NULL);
+  hb_face_t *face = hb_face_builder_create ();
+  g_assert_true (hb_face_builder_add_table (face, HB_TAG ('m','a','x','p'), maxp_blob));
+  g_assert_true (hb_face_builder_add_table (face, HB_TAG ('Z','a','p','f'), zapf_blob));
+  hb_blob_destroy (maxp_blob);
+  hb_blob_destroy (zapf_blob);
+  return face;
+}
+
+static void
+test_aat_glyph_variants_cycle (void)
+{
+  static const hb_codepoint_t three[] = {4};
+  hb_face_t *face = create_zapf_cycle_face ();
+
+  assert_glyph_variants (face, 1, NULL, 0);
+  assert_glyph_variants (face, 3, three, 1);
+
+  hb_face_destroy (face);
 }
 
 static void
@@ -380,6 +642,9 @@ main (int argc, char **argv)
   hb_test_add (test_aat_get_feature_types);
   hb_test_add (test_aat_get_feature_selectors);
   hb_test_add (test_aat_has);
+  hb_test_add (test_aat_glyph_variants);
+  hb_test_add (test_aat_glyph_variants_v2);
+  hb_test_add (test_aat_glyph_variants_cycle);
   hb_test_add (test_aat_kern_subtable_limit);
   hb_test_add (test_aat_morx_subtable_limit);
   hb_test_add (test_aat_ranged_features);

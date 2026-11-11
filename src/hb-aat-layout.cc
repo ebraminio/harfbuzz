@@ -35,6 +35,7 @@
 #include "hb-aat-layout-kerx-table.hh"
 #include "hb-aat-layout-morx-table.hh"
 #include "hb-aat-layout-trak-table.hh"
+#include "hb-aat-layout-zapf-table.hh"
 #include "hb-aat-ltag-table.hh"
 
 #include "hb-ot-layout-gsub-table.hh"
@@ -392,6 +393,27 @@ hb_bool_t
 hb_aat_layout_has_tracking (hb_face_t *face)
 {
   return face->table.trak->has_data ();
+}
+
+/**
+ * hb_aat_layout_collect_glyph_variants:
+ * @face: #hb_face_t to work upon
+ * @glyph: a glyph id
+ * @variants: (out): a set to add the variants to
+ *
+ * Collects the glyphs that are appearance variants of @glyph from the
+ * AAT `Zapf` table into @variants.  @glyph itself is excluded.
+ *
+ * XSince: REPLACEME
+ */
+void
+hb_aat_layout_collect_glyph_variants (hb_face_t      *face,
+				      hb_codepoint_t  glyph,
+				      hb_set_t       *variants)
+{
+  if (unlikely (!variants))
+    return;
+  face->table.Zapf->collect_glyph_variants (glyph, face->get_num_glyphs (), variants);
 }
 
 void

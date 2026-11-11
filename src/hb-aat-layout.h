@@ -790,6 +790,11 @@ HB_EXTERN hb_bool_t
 hb_aat_layout_has_tracking (hb_face_t *face);
 
 
+HB_EXTERN void
+hb_aat_layout_collect_glyph_variants (hb_face_t      *face,
+				      hb_codepoint_t  glyph,
+				      hb_set_t       *variants);
+
 HB_END_DECLS
 
 #endif /* HB_AAT_LAYOUT_H */

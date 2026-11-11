@@ -18,6 +18,7 @@ hb_base_sources = files(
   'hb-aat-layout-morx-table.hh',
   'hb-aat-layout-opbd-table.hh',
   'hb-aat-layout-trak-table.hh',
+  'hb-aat-layout-zapf-table.hh',
   'hb-aat-layout.cc',
   'hb-aat-layout.hh',
   'hb-aat-ltag-table.hh',
@@ -993,6 +994,7 @@ if get_option('tests').enabled()
 
   compiled_tests = {
     'test-aat': ['test-aat.cc', 'hb-static.cc'],
+    'test-zapf': ['test-zapf.cc', 'hb-static.cc'],
     'test-algs': ['test-algs.cc', 'hb-static.cc'],
     'test-array': ['test-array.cc'],
     'test-bimap': ['test-bimap.cc', 'hb-static.cc'],

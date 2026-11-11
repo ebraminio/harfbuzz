@@ -88,6 +88,7 @@ test_font (hb_font_t *font, hb_codepoint_t cp)
     count = 1;
     hb_aat_layout_feature_type_get_selector_infos (face, HB_AAT_LAYOUT_FEATURE_TYPE_DESIGN_COMPLEXITY_TYPE, 0, &count, &setting, &default_index);
     result += count + feature + setting.disable + setting.disable + setting.name_id + setting.reserved + default_index;
+    hb_aat_layout_collect_glyph_variants (face, 1, set);
   }
 #endif
 
